@@ -1,0 +1,10 @@
+# One-shot DB initialization image (psql client + SQL scripts)
+FROM postgres:17-alpine
+
+COPY src/setup/create_schema.sql src/setup/populate_schema.sql src/setup/setup.sh /opt/setup/
+# Strip CRLF in case the repo was checked out on Windows
+RUN sed -i 's/\r$//' /opt/setup/setup.sh && chmod +x /opt/setup/setup.sh
+
+USER postgres
+
+CMD ["/opt/setup/setup.sh"]

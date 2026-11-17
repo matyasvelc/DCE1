@@ -1,0 +1,32 @@
+<table>
+    <thead>
+    <tr>
+        <th>Čas</th>
+        {% if show_item %}<th>SKU</th>{% endif %}
+        <th class="num">Změna</th>
+        <th class="num">Stav po pohybu</th>
+        <th>Důvod</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for m in movements %}
+        <tr>
+            <td>{{ m.created_at | dt }}</td>
+            {% if show_item %}
+                <td>
+                    {% if m.item_id %}
+                        <a href="{{ url_for('item_detail', item_id=m.item_id) }}"><code>{{ m.item_sku }}</code></a>
+                    {% else %}
+                        <code>{{ m.item_sku }}</code> <small>(smazáno)</small>
+                    {% endif %}
+                </td>
+            {% endif %}
+            <td class="num delta {{ 'delta-in' if m.delta > 0 else 'delta-out' }}">{{ '%+d' % m.delta }}</td>
+            <td class="num">{{ m.quantity_after }}</td>
+            <td>{{ m.reason }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="5" class="empty">Zatím žádné pohyby.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>

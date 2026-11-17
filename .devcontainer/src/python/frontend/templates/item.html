@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} – Skladová evidence{% endblock %}
+{% block content %}
+<div class="heading">
+    <h1>{{ item.name }} <code>{{ item.sku }}</code></h1>
+    <span class="badge badge-{{ item.status | lower }}">{{ status_labels[item.status] }}</span>
+</div>
+
+<section class="stats">
+    <div class="stat stat-{{ {'OK': 'ok', 'LOW_STOCK': 'low', 'OUT_OF_STOCK': 'out'}[item.status] }}">
+        <span>Skladem</span><strong>{{ item.quantity }} ks</strong>
+    </div>
+    <div class="stat"><span>Minimální zásoba</span><strong>{{ item.min_quantity }} ks</strong></div>
+    <div class="stat"><span>Cena / ks</span><strong>{{ item.unit_price | czk }}</strong></div>
+    <div class="stat"><span>Hodnota zásoby</span><strong>{{ (item.unit_price * item.quantity) | czk }}</strong></div>
+</section>
+
+<div class="columns">
+    <form class="card" method="post" action="{{ url_for('add_movement', item_id=item.id) }}">
+        <h2>Pohyb skladu</h2>
+        <div class="radio-group">
+            <label><input type="radio" name="direction" value="in" checked> Naskladnit</label>
+            <label><input type="radio" name="direction" value="out"> Vyskladnit</label>
+        </div>
+        <label>Počet kusů <input type="number" name="amount" min="1" value="1" required></label>
+        <label>Důvod <input name="reason" maxlength="255" placeholder="např. Příjemka 2026/123" required></label>
+        <button type="submit" class="primary">Zaznamenat pohyb</button>
+    </form>
+
+    <form class="card" method="post" action="{{ url_for('edit_item', item_id=item.id) }}">
+        <h2>Úprava položky</h2>
+        <label>SKU <input name="sku" value="{{ item.sku }}" maxlength="32" required></label>
+        <label>Název <input name="name" value="{{ item.name }}" maxlength="100" required></label>
+        <label>Popis <textarea name="description" rows="2">{{ item.description or '' }}</textarea></label>
+        <label>Minimální zásoba (ks) <input type="number" name="min_quantity" min="0" value="{{ item.min_quantity }}" required></label>
+        <label>Cena / ks (Kč) <input type="number" name="unit_price" min="0" step="0.01" value="{{ item.unit_price }}"></label>
+        <button type="submit">Uložit změny</button>
+    </form>
+</div>
+
+<h2>Historie pohybů</h2>
+{% include "_movements_table.html" %}
+
+<form method="post" action="{{ url_for('delete_item', item_id=item.id) }}"
+      onsubmit="return confirm('Opravdu smazat položku {{ item.sku }}? Auditní záznamy zůstanou zachovány.');">
+    <button type="submit" class="danger">Smazat položku</button>
+</form>
+{% endblock %}

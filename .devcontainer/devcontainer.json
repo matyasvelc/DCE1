@@ -1,0 +1,8 @@
+{
+    "name": "DCE Development Environment",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "devel",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+}
+  
+  

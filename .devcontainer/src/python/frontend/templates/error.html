@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Chyba – Skladová evidence{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{{ message }}</h1>
+    <p class="muted">{{ detail }}</p>
+    <a class="button" href="{{ url_for('index') }}">Zkusit znovu</a>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Auditní log – Skladová evidence{% endblock %}
+{% block content %}
+<h1>Auditní log pohybů</h1>
+<p class="muted">Posledních {{ movements | length }} pohybů napříč všemi položkami.</p>
+{% set show_item = true %}
+{% include "_movements_table.html" %}
+{% endblock %}

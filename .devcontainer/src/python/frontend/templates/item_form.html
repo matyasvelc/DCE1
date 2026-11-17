@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Nová položka – Skladová evidence{% endblock %}
+{% block content %}
+<h1>Nová položka</h1>
+<form class="card form-grid" method="post">
+    <label>SKU <input name="sku" value="{{ form.sku }}" maxlength="32" required></label>
+    <label>Název <input name="name" value="{{ form.name }}" maxlength="100" required></label>
+    <label class="wide">Popis <textarea name="description" rows="3">{{ form.description }}</textarea></label>
+    <label>Počáteční stav (ks) <input type="number" name="quantity" min="0" value="{{ form.quantity or 0 }}"></label>
+    <label>Minimální zásoba (ks) <input type="number" name="min_quantity" min="0" value="{{ form.min_quantity or 0 }}"></label>
+    <label>Cena / ks (Kč) <input type="number" name="unit_price" min="0" step="0.01" value="{{ form.unit_price or 0 }}"></label>
+    <div class="wide actions">
+        <a class="button" href="{{ url_for('index') }}">Zpět</a>
+        <button type="submit" class="primary">Vytvořit</button>
+    </div>
+</form>
+{% endblock %}
