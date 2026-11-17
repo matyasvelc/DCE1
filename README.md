@@ -42,36 +42,69 @@ Inicializaci schématu dělá jednorázový kontejner **setup** (v Kubernetes z 
 - **Healthchecky** – `/health/live` (proces běží, bez DB) a `/health/ready` (`/health`) ověřující spojení do DB;
   připraveno pro liveness/readiness sondy.
 
-## Lokální spuštění
+## Obrazy v Docker Hubu
+
+Hotové obrazy jsou veřejně v registru Docker Hub (účet `mvelc`):
+
+| Služba | Obraz |
+|---|---|
+| backend | [`docker.io/mvelc/inventory-backend:latest`](https://hub.docker.com/r/mvelc/inventory-backend) |
+| frontend | [`docker.io/mvelc/inventory-frontend:latest`](https://hub.docker.com/r/mvelc/inventory-frontend) |
+| setup | [`docker.io/mvelc/inventory-setup:latest`](https://hub.docker.com/r/mvelc/inventory-setup) |
+| postgresqldb | oficiální `postgres:17` (nepushuje se) |
+
+## Spuštění (z Docker Hubu)
+
+Potřeba je jen Docker s Compose v2 (`docker compose version`).
 
 ```bash
-cd .devcontainer
-cp .env.example .env        # (soubor .env už je připravený s vývojovými hodnotami)
-docker compose up --build -d frontend
+git clone https://github.com/matyasvelc/DCE1.git
+cd DCE1/.devcontainer
+docker compose pull postgresqldb setup backend frontend   # stáhne obrazy z Docker Hubu
+docker compose up -d frontend                              # spustí db → setup → backend → frontend
 ```
 
-- UI: <http://localhost:8080>
-- API: <http://localhost:8091> (port z rozsahu 8091–8093, viz `docker compose ps`)
-- DB: `localhost:5432`
+Compose dodrží pořadí: `postgresqldb` (healthy) → `setup` (proběhne a skončí s kódem 0) → `backend` (healthy) → `frontend`.
+Parametry (přístupy do DB, porty, registry) jsou v souboru `.devcontainer/.env`.
 
-Data jsou ve named volume `db-data` – přežijí `docker compose down`, smažou se až `docker compose down -v`.
-Seed se nahraje jen při prázdné tabulce `items`.
+> Pokud je port 5432 nebo 8080 obsazený, změňte v `.env` hodnotu `DB_HOST_PORT` / `FRONTEND_PORT`.
+
+## Ověření funkčnosti
+
+1. **Stav kontejnerů** – `docker compose ps`: `postgresqldb`, `backend`, `frontend` mají stav `healthy`,
+   `setup` je `Exited (0)` (`docker compose ps -a`).
+2. **Logy setupu** – `docker compose logs setup` končí řádkem `Database setup finished.`
+3. **Healthcheck API** (backend je publikovaný na portu z rozsahu 8091–8093, viz `docker compose ps`):
+   ```bash
+   curl localhost:8091/health/ready      # {"database": "UP", "status": "UP"} – backend vidí databázi
+   curl localhost:8091/items/stats       # počty položek podle stavu
+   ```
+4. **Webové UI** – <http://localhost:8080>: tabulka s 6 ukázkovými položkami, souhrnné dlaždice a filtr *K doobjednání*.
+5. **Zápis přes API** – vyskladnění 5 ks první položky a kontrola auditního logu:
+   ```bash
+   curl -X POST localhost:8091/items/1/movements -H 'Content-Type: application/json' \
+        -d '{"delta": -5, "reason": "Test"}'
+   curl localhost:8091/items/1/movements
+   ```
+   Pokus o vyskladnění víc kusů, než je skladem, vrátí HTTP 409.
+6. **Perzistence** – `docker compose down` a znovu `docker compose up -d frontend`: změny zůstanou
+   (named volume `db-data`). Úplný úklid včetně dat: `docker compose down -v`.
 
 Škálování backendu: `docker compose up -d --scale backend=3` (proto rozsah portů 8091–8093).
 
-## Nahrání obrazů do registru
+## Sestavení a nahrání obrazů do registru (pro autora)
 
-Obrazy jsou v compose pojmenované `${REGISTRY}/inventory-{backend,frontend,setup}:${TAG}`. Stačí v `.env` nastavit
-`REGISTRY` (např. `docker.io/<uzivatel>` nebo cestu ke container registry projektu v KIV GitLabu) a `TAG`:
+Obrazy jsou v compose pojmenované `${REGISTRY}/inventory-{backend,frontend,setup}:${TAG}`; `REGISTRY` a `TAG`
+se nastavují v `.devcontainer/.env` (zde `REGISTRY=docker.io/mvelc`, `TAG=latest`).
 
 ```bash
 cd .devcontainer
-docker login <registry-host>     # Docker Hub: docker login
-docker compose build
+docker login                       # přihlášení do Docker Hubu
+docker compose build setup backend frontend
 docker compose push setup backend frontend
 ```
 
-Databáze používá oficiální obraz `postgres:17`, ten se nepushuje.
+Lokální vývoj bez registru: `docker compose up --build -d frontend` (obrazy se sestaví z Dockerfilů).
 
 ## REST API
 
