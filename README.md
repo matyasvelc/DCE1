@@ -35,7 +35,7 @@ Inicializaci schématu dělá jednorázový kontejner **setup** (v Kubernetes z 
   - `LOW_STOCK` … `0 < quantity <= min_quantity`
   - `OK` … jinak
 
-  Na frontendu barevné odznaky/řádky, souhrnné dlaždice a filtr **K doobjednání** (`LOW_STOCK` + `OUT_OF_STOCK`).
+  Na frontendu barevné řádky a filtr **K doobjednání** (`LOW_STOCK` + `OUT_OF_STOCK`).
 - **Auditní log pohybů** – počet kusů se mění *jen* přes pohyb (naskladnění/vyskladnění). Pohyb běží v jedné transakci
   se zamčeným řádkem (`SELECT … FOR UPDATE`), odmítne záporný stav (HTTP 409) a zapíše záznam do `stock_movements`
   (čas, delta, stav po pohybu, důvod). Záznamy přežijí smazání položky.
@@ -51,7 +51,7 @@ Hotové obrazy jsou veřejně v registru Docker Hub (účet `mvelc`):
 | backend | [`docker.io/mvelc/inventory-backend:latest`](https://hub.docker.com/r/mvelc/inventory-backend) |
 | frontend | [`docker.io/mvelc/inventory-frontend:latest`](https://hub.docker.com/r/mvelc/inventory-frontend) |
 | setup | [`docker.io/mvelc/inventory-setup:latest`](https://hub.docker.com/r/mvelc/inventory-setup) |
-| postgresqldb | oficiální `postgres:17` (nepushuje se) |
+| postgresqldb | oficiální `postgres:17` |
 
 ## Spuštění (z Docker Hubu)
 
@@ -79,7 +79,7 @@ Parametry (přístupy do DB, porty, registry) jsou v souboru `.devcontainer/.env
    curl localhost:8091/health/ready      # {"database": "UP", "status": "UP"} – backend vidí databázi
    curl localhost:8091/items/stats       # počty položek podle stavu
    ```
-4. **Webové UI** – <http://localhost:8080>: tabulka s 6 ukázkovými položkami, souhrnné dlaždice a filtr *K doobjednání*.
+4. **Webové UI** – <http://localhost:8080>: tabulka s 6 ukázkovými položkami, souhrnné ukazatele a filtr *K doobjednání*.
 5. **Zápis přes API** – vyskladnění 5 ks první položky a kontrola auditního logu:
    ```bash
    curl -X POST localhost:8091/items/1/movements -H 'Content-Type: application/json' \
@@ -89,22 +89,6 @@ Parametry (přístupy do DB, porty, registry) jsou v souboru `.devcontainer/.env
    Pokus o vyskladnění víc kusů, než je skladem, vrátí HTTP 409.
 6. **Perzistence** – `docker compose down` a znovu `docker compose up -d frontend`: změny zůstanou
    (named volume `db-data`). Úplný úklid včetně dat: `docker compose down -v`.
-
-Škálování backendu: `docker compose up -d --scale backend=3` (proto rozsah portů 8091–8093).
-
-## Sestavení a nahrání obrazů do registru (pro autora)
-
-Obrazy jsou v compose pojmenované `${REGISTRY}/inventory-{backend,frontend,setup}:${TAG}`; `REGISTRY` a `TAG`
-se nastavují v `.devcontainer/.env` (zde `REGISTRY=docker.io/mvelc`, `TAG=latest`).
-
-```bash
-cd .devcontainer
-docker login                       # přihlášení do Docker Hubu
-docker compose build setup backend frontend
-docker compose push setup backend frontend
-```
-
-Lokální vývoj bez registru: `docker compose up --build -d frontend` (obrazy se sestaví z Dockerfilů).
 
 ## REST API
 
